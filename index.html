@@ -1,4 +1,27 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>OpsAI Hub · Tim Hortons India</title><script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js?v=10"></script><style>
+<!-- Firebase Setup -->
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
+  import { getAuth } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js";
+  import { getFirestore } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyD6InikPqxX3qprEcuHPrnaNDHC8rY-qZY",
+    authDomain: "timhortons-opsai.firebaseapp.com",
+    projectId: "timhortons-opsai",
+    storageBucket: "timhortons-opsai.firebasestorage.app",
+    messagingSenderId: "579276673875",
+    appId: "1:579276673875:web:d2e31837284a942ebe07a6",
+    measurementId: "G-KNLJDXR7T8"
+  };
+
+  const app = initializeApp(firebaseConfig);
+
+  window.auth = getAuth(app);
+  window.db = getFirestore(app);
+</script>
+
+<!-- Your existing JS -->
+<script src="script.js?v=10"></script><!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>OpsAI Hub · Tim Hortons India</title><script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js?v=10"></script><style>
 *{box-sizing:border-box;margin:0;padding:0}
 :root{--bg:#F4F5F7;--card:#FFF;--ink:#0B0B0F;--ink2:#475569;--ink3:#64748B;--line:#E5E9F0;--red:#C8102E;--red-d:#9A0B22;--green:#16A34A;--gold:#D4960A;--shadow:0 1px 3px rgba(15,23,42,.08),0 4px 12px rgba(15,23,42,.06);--shadow-lg:0 12px 32px rgba(15,23,42,.12)}
 body{font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',sans-serif;background:var(--bg);color:var(--ink);font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased}
