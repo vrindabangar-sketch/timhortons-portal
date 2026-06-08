@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Daily Cleaning Photo Submission</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;font-family:Arial,Helvetica,sans-serif}
+:root{--red:#c8102e;--dark:#111;--bg:#f6f6f2;--card:#fff;--line:#e5e5e5;--green:#15803d;--orange:#b45309}
+body{background:var(--bg);color:#111;padding-bottom:30px}
+.header{background:var(--dark);color:#fff;padding:18px 16px;border-bottom:5px solid var(--red)}
+.header h1{font-size:22px}.header p{font-size:12px;color:#ccc;margin-top:4px}
+.wrap{max-width:950px;margin:0 auto;padding:16px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px;margin-bottom:14px;box-shadow:0 4px 14px rgba(0,0,0,.06)}
+label{font-size:12px;font-weight:800;margin-bottom:4px;display:block;color:#333}
+input,select{width:100%;padding:12px;border:1.5px solid var(--line);border-radius:10px;margin-bottom:12px;font-size:15px;background:white}
+button{border:0;border-radius:10px;padding:12px 14px;font-weight:900;cursor:pointer;font-size:14px}
+.btn{background:var(--red);color:#fff;width:100%}.btn-dark{background:var(--dark);color:#fff}.btn-light{background:#eee;color:#111}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.status-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:10px}
+.status{border:1px solid var(--line);border-radius:12px;padding:12px;background:#fafafa}
+.done{border-left:5px solid var(--green);background:#f0fdf4}.pending{border-left:5px solid var(--red);background:#fff1f2}
+.badge{display:inline-block;padding:4px 9px;border-radius:999px;font-size:11px;font-weight:900;margin-top:6px}
+.badge-done{background:#dcfce7;color:#166534}.badge-pending{background:#fee2e2;color:#991b1b}
+.photo-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-top:10px}
+.photo-card{border:1px solid var(--line);border-radius:12px;padding:8px;background:#fff}
+.photo-card img{width:100%;height:130px;object-fit:cover;border-radius:9px}
+.small{font-size:11px;color:#666;line-height:1.4;margin-top:5px}
+.alert{background:#fff7ed;border-left:5px solid var(--orange);padding:12px;border-radius:12px;margin-bottom:14px;font-weight:800}
+.success{background:#f0fdf4;border-left:5px solid var(--green);padding:12px;border-radius:12px;margin-bottom:14px;font-weight:800;color:#166534;display:none}
+.section-title{font-size:13px;font-weight:900;margin:14px 0 8px;color:var(--red);text-transform:uppercase;letter-spacing:.04em}
+@media(max-width:650px){.row{grid-template-columns:1fr}.header h1{font-size:19px}}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>Daily Cleaning Photo Submission</h1>
+  <p>Daily tasks + weekday cleaning points · multiple photos · time + GPS location</p>
+</div>
+
+<div class="wrap">
+  <div class="card">
+    <h2 style="font-size:18px;margin-bottom:10px">Store Details</h2>
+    <label>Store Name *</label>
+    <input id="storeName" placeholder="Example: Seawoods / Elante / CP 67" oninput="saveStoreName(); renderAll();">
+    <div class="row">
+      <div>
+        <label>Date *</label>
+        <input id="cleanDate" type="date" onchange="loadAreas(); renderAll();">
+      </div>
+      <div>
+        <label>Cleaning Point *</label>
+        <select id="cleanArea"></select>
+      </div>
+    </div>
+    <p class="small" id="dayInfo"></p>
+  </div>
+
+  <div id="msg" class="success"></div>
+
+  <div class="card">
+    <h2 style="font-size:18px;margin-bottom:10px">Upload Cleaning Photos</h2>
+    <p class="small" style="margin-bottom:10px">Select one cleaning point, upload multiple photos, capture location, then submit.</p>
+    <label>Photos *</label>
+    <input id="photos" type="file" accept="image/*" multiple>
+    <button class="btn-dark" style="width:100%;margin-bottom:10px" onclick="captureLocation()">📍 Capture Location</button>
+    <p class="small" id="locText">Location not captured yet</p>
+    <button class="btn" style="margin-top:12px" onclick="submitCleaning()">Submit Cleaning Proof</button>
+  </div>
+
+  <div class="card">
+    <h2 style="font-size:18px;margin-bottom:10px">Completion Status</h2>
+    <div id="pendingAlert"></div>
+    <div class="section-title">Daily Tasks</div>
+    <div class="status-grid" id="dailyGrid"></div>
+    <div class="section-title" id="weekdayTitle">Weekday Tasks</div>
+    <div class="status-grid" id="weekdayGrid"></div>
+  </div>
+
+  <div class="card">
+    <h2 style="font-size:18px;margin-bottom:10px">Uploaded Photos</h2>
+    <button class="btn-light" onclick="downloadCSV()" style="margin-bottom:10px">Download Report CSV</button>
+    <button class="btn-light" onclick="clearToday()" style="margin-bottom:10px">Clear Selected Date Data</button>
+    <div id="gallery"></div>
+  </div>
+</div>
+
+<script>
+const DAILY_AREAS = ["FOOD SECTION", "MERRYCHEF", "FDU", "ICE CADDY", "FOH CHILLERS", "MERCH RACK (MORNING)", "BAKING STATION", "COMBI OVEN", "DUSTBINS WASHING", "ALL SINKS", "DISHWASHER", "ALL SYRUP PUMP CLEANING", "SEALING MACHINE", "HOT & COLD SECTION", "ALL DRAWERS CLEANING"];
+const WEEKDAY_AREAS = {"MONDAY": ["ALL GN PANS", "MAGIC BOX", "ICE CUBE MACHINE CLEANING", "ALL STANDS"], "TUESDAY": ["BOH CHILLER AND FREEZER", "BEHIND THE EQUIPMENTS", "ALL LOCKERS (MORNING)", "ALL SKIRTINGS"], "WEDNESDAY": ["CHANGE FLY CATCHER", "MAGIC BOX", "ICE MACHINE CLEANING", "ALL CUPBOARDS", "ALL STANDS"], "THURSDAY": ["ALL LIGHTS AND SIGNAGES", "ALL SKIRTINGS", "BEHIND THE EQUIPMENTS", "BOH CHILLER AND FREEZER"], "FRIDAY": ["TABLE AND CHAIR CLEANING", "FLOOR SCRUBBING", "ICE MACHINE CLEANING", "COLD SECTION WALL", "DRAWERS & CUPBOARDS"], "SATURDAY": ["ALL CHAIR TABLES", "BOH DEEP CLEANING", "ALL STANDS"], "SUNDAY": ["ICE MACHINE CLEANING WITH SUMA DELIME", "ALL LIGHTS SIGNAGES", "SKIRTING", "ALL STANDS"]};
+let currentLocation = null;
+
+function todayKey(){ return new Date().toISOString().slice(0,10); }
+function nowText(){ return new Date().toLocaleString("en-IN",{dateStyle:"medium",timeStyle:"short"}); }
+function getData(){ return JSON.parse(localStorage.getItem("cleaning_photo_data_v2") || "[]"); }
+function saveData(data){ localStorage.setItem("cleaning_photo_data_v2", JSON.stringify(data)); }
+function getDayName(dateStr){
+  const d = new Date(dateStr + "T00:00:00");
+  return d.toLocaleDateString("en-US", {weekday:"long"}).toUpperCase();
+}
+function requiredAreas(){
+  const date = document.getElementById("cleanDate").value || todayKey();
+  const day = getDayName(date);
+  return {day, daily: DAILY_AREAS, weekly: WEEKDAY_AREAS[day] || [], all: [...DAILY_AREAS, ...(WEEKDAY_AREAS[day] || [])]};
+}
+
+function init(){
+  document.getElementById("cleanDate").value = todayKey();
+  document.getElementById("storeName").value = localStorage.getItem("cleaning_store_name") || "";
+  loadAreas();
+  renderAll();
+}
+
+function saveStoreName(){
+  localStorage.setItem("cleaning_store_name", document.getElementById("storeName").value.trim());
+}
+
+function loadAreas(){
+  const req = requiredAreas();
+  document.getElementById("cleanArea").innerHTML = req.all.map(a => `<option>${a}</option>`).join("");
+  document.getElementById("dayInfo").innerText = `Selected day: ${req.day} · Daily tasks: ${req.daily.length} · ${req.day} tasks: ${req.weekly.length}`;
+}
+
+function captureLocation(){
+  if(!navigator.geolocation){ alert("Location is not supported on this device."); return; }
+  navigator.geolocation.getCurrentPosition(function(pos){
+    currentLocation = {lat: pos.coords.latitude, lng: pos.coords.longitude, accuracy: pos.coords.accuracy};
+    document.getElementById("locText").innerHTML =
+      "✅ Location captured: " + currentLocation.lat.toFixed(5) + ", " + currentLocation.lng.toFixed(5) +
+      " · Accuracy ±" + Math.round(currentLocation.accuracy) + "m";
+  }, function(){
+    alert("Please allow location permission. Location is compulsory.");
+  }, {enableHighAccuracy:true, timeout:12000});
+}
+
+function submitCleaning(){
+  const store = document.getElementById("storeName").value.trim();
+  const date = document.getElementById("cleanDate").value;
+  const area = document.getElementById("cleanArea").value;
+  const files = Array.from(document.getElementById("photos").files);
+  if(!store){ alert("Please enter store name."); return; }
+  if(!date){ alert("Please select date."); return; }
+  if(!area){ alert("Please select cleaning point."); return; }
+  if(!files.length){ alert("Please upload at least one photo."); return; }
+  if(!currentLocation){ alert("Please capture location first."); return; }
+
+  let completed = 0;
+  files.forEach(file => {
+    const reader = new FileReader();
+    reader.onload = function(){
+      const data = getData();
+      data.push({
+        store, date, area, time: nowText(), lat: currentLocation.lat, lng: currentLocation.lng,
+        accuracy: currentLocation.accuracy, photo: reader.result, fileName: file.name
+      });
+      saveData(data);
+      completed++;
+      if(completed === files.length){
+        document.getElementById("photos").value = "";
+        currentLocation = null;
+        document.getElementById("locText").innerText = "Location not captured yet";
+        showMsg("✅ Cleaning photos submitted successfully.");
+        renderAll();
+      }
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+function showMsg(text){
+  const msg = document.getElementById("msg");
+  msg.innerText = text;
+  msg.style.display = "block";
+  setTimeout(()=>msg.style.display="none",3000);
+}
+
+function renderAll(){ renderStatus(); renderGallery(); }
+
+function renderOneGrid(targetId, areas, data){
+  document.getElementById(targetId).innerHTML = areas.map(area => {
+    const count = data.filter(x => x.area === area).length;
+    const done = count > 0;
+    return `
+      <div class="status ${done ? "done" : "pending"}">
+        <b>${area}</b><br>
+        <span class="badge ${done ? "badge-done" : "badge-pending"}">${done ? "✔ Completed" : "❌ Pending"}</span>
+        ${done ? `<p class="small">${count} photo(s) uploaded</p>` : ""}
+      </div>`;
+  }).join("");
+}
+
+function renderStatus(){
+  const store = document.getElementById("storeName").value.trim();
+  const date = document.getElementById("cleanDate").value || todayKey();
+  const req = requiredAreas();
+  const data = getData().filter(x => x.store === store && x.date === date);
+  const completed = [...new Set(data.map(x => x.area))];
+  const pending = req.all.filter(a => !completed.includes(a));
+
+  document.getElementById("weekdayTitle").innerText = req.day + " Tasks";
+  document.getElementById("pendingAlert").innerHTML = pending.length
+    ? `<div class="alert">⚠️ Pending for selected date: ${pending.length} cleaning point(s)</div>`
+    : `<div class="success" style="display:block">✅ All required cleaning points completed.</div>`;
+
+  renderOneGrid("dailyGrid", req.daily, data);
+  renderOneGrid("weekdayGrid", req.weekly, data);
+}
+
+function renderGallery(){
+  const store = document.getElementById("storeName").value.trim();
+  const date = document.getElementById("cleanDate").value || todayKey();
+  const req = requiredAreas();
+  const data = getData().filter(x => x.store === store && x.date === date).reverse();
+
+  if(!store){ document.getElementById("gallery").innerHTML = `<p class="small">Enter store name to view uploaded photos.</p>`; return; }
+  if(!data.length){ document.getElementById("gallery").innerHTML = `<p class="small">No photos uploaded for this date.</p>`; return; }
+
+  document.getElementById("gallery").innerHTML = req.all.map(area => {
+    const list = data.filter(x => x.area === area);
+    if(!list.length) return "";
+    return `
+      <h3 style="font-size:15px;margin:14px 0 8px">${area}</h3>
+      <div class="photo-grid">
+        ${list.map(item => `
+          <div class="photo-card">
+            <img src="${item.photo}">
+            <p class="small"><b>Time:</b> ${item.time}</p>
+            <p class="small"><b>Location:</b> ${item.lat.toFixed(5)}, ${item.lng.toFixed(5)}</p>
+            <a class="small" target="_blank" href="https://maps.google.com/?q=${item.lat},${item.lng}">Open Location</a>
+          </div>`).join("")}
+      </div>`;
+  }).join("");
+}
+
+function downloadCSV(){
+  const store = document.getElementById("storeName").value.trim();
+  const date = document.getElementById("cleanDate").value || todayKey();
+  const data = getData().filter(x => x.store === store && x.date === date);
+  if(!data.length){ alert("No data to download."); return; }
+  let csv = "Store,Date,Area,Time,Latitude,Longitude,Accuracy,FileName\n";
+  data.forEach(x => {
+    csv += `"${x.store}","${x.date}","${x.area}","${x.time}","${x.lat}","${x.lng}","${Math.round(x.accuracy)}","${x.fileName}"\n`;
+  });
+  const blob = new Blob([csv], {type:"text/csv"});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `${store}_${date}_cleaning_report.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function clearToday(){
+  const store = document.getElementById("storeName").value.trim();
+  const date = document.getElementById("cleanDate").value || todayKey();
+  if(!store){ alert("Enter store name first."); return; }
+  if(!confirm("Clear uploaded data for this store and selected date?")) return;
+  const data = getData().filter(x => !(x.store === store && x.date === date));
+  saveData(data);
+  renderAll();
+}
+
+init();
+</script>
+</body>
+</html>
